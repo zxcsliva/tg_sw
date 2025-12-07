@@ -41,15 +41,15 @@ DATABASE_URL=sqlite:///smart_home.db
 python main.py
 ```
 
-## ☁️ Хостинг на Back4App (Webhook)
+## ☁️ Хостинг на Back4App (Polling)
 
-### 1. Создание приложения на Back4App
+### 1. Подготовка
 
 1. Зарегистрируйтесь на [back4app.com](https://www.back4app.com)
-2. Создайте новое приложение (Python)
+2. Создайте новое приложение (Docker-based)
 3. Скопируйте URL вашего приложения (например: `https://your-app-name.back4app.io`)
 
-### 2. Подготовка к деплою
+### 2. Деплой
 
 ```bash
 # Инициализируем git репозиторий (если еще не инициализирован)
@@ -57,28 +57,7 @@ git init
 
 # Добавляем remote для Back4App
 git remote add back4app https://git.back4app.com/your-username/your-app-name.git
-```
 
-### 3. Установка переменных окружения на Back4App
-
-В Dashboard Back4App перейдите в Settings → Environment Variables и установите:
-
-```
-TELEGRAM_BOT_TOKEN=your_bot_token
-BOT_MODE=webhook
-WEBHOOK_URL=https://your-app-name.back4app.io
-PORT=8080
-DATABASE_URL=sqlite:///smart_home.db
-```
-
-Или используйте PostgreSQL (рекомендуется):
-```
-DATABASE_URL=postgresql://user:password@back4app-postgres/smart_home
-```
-
-### 4. Деплой на Back4App
-
-```bash
 # Добавляем файлы
 git add .
 git commit -m "Deploy bot to Back4App"
@@ -87,36 +66,25 @@ git commit -m "Deploy bot to Back4App"
 git push back4app main
 ```
 
-### 5. Регистрация Webhook в Telegram
+### 3. Установка переменных окружения на Back4App
 
-После успешного деплоя выполните этот запрос один раз (замените значения):
+В Dashboard Back4App перейдите в **Settings → Environment Variables** и установите:
 
-```bash
-curl -X POST https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://your-app-name.back4app.io/<YOUR_BOT_TOKEN>"}'
+```
+TELEGRAM_BOT_TOKEN=your_actual_bot_token
+BOT_MODE=polling
+DATABASE_URL=sqlite:///smart_home.db
 ```
 
-Или используйте Python:
+### 4. Запуск
 
-```python
-import requests
+Back4App автоматически:
+- Прочитает `Dockerfile`
+- Соберет образ
+- Запустит приложение с помощью `python main.py`
+- Бот будет работать в режиме polling
 
-token = "YOUR_BOT_TOKEN"
-webhook_url = "https://your-app-name.back4app.io/YOUR_BOT_TOKEN"
-
-response = requests.post(
-    f"https://api.telegram.org/bot{token}/setWebhook",
-    json={"url": webhook_url}
-)
-print(response.json())
-```
-
-### 6. Проверка статуса Webhook
-
-```bash
-curl https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getWebhookInfo
-```
+Всё! Больше ничего не нужно. 🎯
 
 ## 📱 Использование
 

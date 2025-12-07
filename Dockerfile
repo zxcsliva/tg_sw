@@ -21,12 +21,8 @@ COPY . .
 RUN mkdir -p /app/data
 
 # Устанавливаем переменные окружения по умолчанию
-ENV PORT=8080
-ENV BOT_MODE=webhook
+ENV BOT_MODE=polling
 ENV PYTHONUNBUFFERED=1
 
-# Expose порт
-EXPOSE 8080
-
 # Команда для запуска приложения
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--timeout", "60", "--workers", "1", "app:app"]
+CMD ["python", "main.py"]
