@@ -22,7 +22,15 @@ RUN mkdir -p /app/data
 
 # Устанавливаем переменные окружения по умолчанию
 ENV BOT_MODE=polling
+ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
+
+# Expose порт
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8080/health')"
 
 # Команда для запуска приложения
 CMD ["python", "main.py"]

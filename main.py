@@ -5,13 +5,36 @@
 """
 
 import os
+import threading
+from flask import Flask
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from config import TELEGRAM_BOT_TOKEN
 from database import init_db
 from handlers import start, help_command, config_command, button_callback, status_command
 
+# Flask приложение для health check
+flask_app = Flask(__name__)
 
-def main():
+
+@flask_app.route('/health', methods=['GET'])
+def health():
+    """Health check endpoint для Back4App"""
+    return {'status': 'healthy'}, 200
+
+
+@flask_app.route('/', methods=['GET'])
+def index():
+    """Главная страница"""
+    return {'message': 'Smart Home Bot is running'}, 200
+
+
+def run_flask():
+    """Запуск Flask в отдельном потоке"""
+    port = int(os.getenv('PORT', 8080))
+    flask_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+
+
+def run_bot():
     """Запуск бота"""
     # Инициализация БД
     init_db()
@@ -28,29 +51,23 @@ def main():
     # Регистрация обработчика callback'ов
     app.add_handler(CallbackQueryHandler(button_callback))
     
-    # Определяем режим запуска (polling или webhook)
-    mode = os.getenv('BOT_MODE', 'polling')
+    # Polling режим
+    print("🤖 Бот запущен в режиме polling!")
+    print("Нажмите Ctrl+C для остановки.")
+    app.run_polling()
+
+
+def main():
+    """Запуск Flask и бота в отдельных потоках"""
+    port = int(os.getenv('PORT', 8080))
+    print(f"🚀 Запуск приложения на порту {port}")
     
-    if mode == 'webhook':
-        # Webhook режим для облака (Back4App)
-        webhook_url = os.getenv('WEBHOOK_URL')
-        port = int(os.getenv('PORT', 8443))
-        
-        print(f"🤖 Бот запущен в режиме webhook!")
-        print(f"📍 URL: {webhook_url}")
-        print(f"🔌 Порт: {port}")
-        
-        app.run_webhook(
-            listen="0.0.0.0",
-            port=port,
-            url_path=TELEGRAM_BOT_TOKEN,
-            webhook_url=f"{webhook_url}/{TELEGRAM_BOT_TOKEN}"
-        )
-    else:
-        # Polling режим для локальной разработки
-        print("🤖 Бот запущен в режиме polling!")
-        print("Нажмите Ctrl+C для остановки.")
-        app.run_polling()
+    # Запускаем Flask в отдельном потоке
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    
+    # Запускаем бота в основном потоке
+    run_bot()
 
 
 if __name__ == '__main__':
