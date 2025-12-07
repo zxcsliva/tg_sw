@@ -5,6 +5,8 @@
 """
 
 import os
+import sys
+import asyncio
 import threading
 from flask import Flask
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
@@ -31,10 +33,11 @@ def index():
 def run_flask():
     """Запуск Flask в отдельном потоке"""
     port = int(os.getenv('PORT', 8080))
-    flask_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+    print(f"🌐 Flask запущен на http://0.0.0.0:{port}")
+    flask_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False, threaded=True)
 
 
-def run_bot():
+async def run_bot():
     """Запуск бота"""
     # Инициализация БД
     init_db()
@@ -51,14 +54,25 @@ def run_bot():
     # Регистрация обработчика callback'ов
     app.add_handler(CallbackQueryHandler(button_callback))
     
-    # Polling режим
     print("🤖 Бот запущен в режиме polling!")
-    print("Нажмите Ctrl+C для остановки.")
-    app.run_polling()
+    
+    # Polling режим
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling(allowed_updates=[])
+    
+    try:
+        await asyncio.Event().wait()
+    except KeyboardInterrupt:
+        print("Остановка бота...")
+    finally:
+        await app.updater.stop()
+        await app.stop()
+        await app.shutdown()
 
 
 def main():
-    """Запуск Flask и бота в отдельных потоках"""
+    """Запуск Flask и бота"""
     port = int(os.getenv('PORT', 8080))
     print(f"🚀 Запуск приложения на порту {port}")
     
@@ -66,8 +80,16 @@ def main():
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
     
+    # Даем Flask время на запуск
+    import time
+    time.sleep(1)
+    
     # Запускаем бота в основном потоке
-    run_bot()
+    try:
+        asyncio.run(run_bot())
+    except KeyboardInterrupt:
+        print("\n✋ Приложение остановлено")
+        sys.exit(0)
 
 
 if __name__ == '__main__':
